@@ -6,6 +6,8 @@ import websockets
 import ssl
 import os
 
+from termcolor import colored
+
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env
 
@@ -71,8 +73,15 @@ async def twilio_handler(twilio_ws):
             streamsid = await streamsid_queue.get()
             # for each sts result received, forward it on to the call
             async for message in sts_ws:
-                if type(message) is str:
-                    print(message)
+                if isinstance(message, str):  # Ensure message is a string
+                    decoded = json.loads(message)  # Convert JSON string to dictionary
+
+                    role = decoded.get("role", "unknown")  # Get role (user/assistant), default to 'unknown'
+                    content = decoded.get("content", "").strip()  # Get message content, default to empty string
+
+                    if role and content:
+                        print(f"{role}: \"{content}\"")  # Format and print role + message
+
                     # handle barge-in
                     decoded = json.loads(message)
                     if decoded['type'] == 'UserStartedSpeaking':
@@ -84,7 +93,6 @@ async def twilio_handler(twilio_ws):
 
                     continue
 
-                print(type(message))
                 raw_mulaw = message
 
                 # construct a Twilio media message with the raw mulaw (see https://www.twilio.com/docs/voice/twiml/stream#websocket-messages---to-twilio)
